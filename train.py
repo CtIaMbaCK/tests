@@ -19,10 +19,12 @@ from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, Ta
 model_name = "Qwen/Qwen1.5-1.8B-Chat"
 output_path = "./data.jsonl"
 adapter_path = "./qwen-qlora-model"
+token ="" # viết thêm token vô đây
 
 # Thiết bị
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"✅ Using device: {device}")
+# train gg colab thì khỏi phải cái này, mà check xem gpu trông bao nhiêu bằng nvidia-smi
 
 # Quantization 4-bit
 bnb_config = BitsAndBytesConfig(
@@ -31,28 +33,29 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_quant_type="nf4",
     bnb_4bit_compute_dtype=torch.bfloat16
 )
+#cái này dùng cũng được, hợp với QLora 
+#nhưng mà kiểm tra xem có bfloat16 không, nếu có thì đổi cái bnb_4bit_compute_dtype đi thì ooke hơn
 
 # Load tokenizer & model
 tokenizer = AutoTokenizer.from_pretrained(
     model_name,
     trust_remote_code=True,
-    token=""
+    token=token
 )
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     quantization_config=bnb_config,
     trust_remote_code=True,
-    token=""
-)
+    token="token
 
-model.gradient_checkpointing_enable()
+model.gradient_checkpointing_enable() #giảm ram cũng được
 model = prepare_model_for_kbit_training(model)
 
 peft_config = LoraConfig(
     r=8,
     lora_alpha=16,
-    target_modules=["c_proj", "w2", "o_proj"],
+    target_modules=["c_proj", "w2", "o_proj"], # kiểm tra xem mô hình có những module này không nha
     lora_dropout=0.05,
     bias="none",
     task_type=TaskType.CAUSAL_LM
